@@ -1,0 +1,120 @@
+name: Crypto + Gold News Trading Bot
+
+# ============================================================
+# SCHEDULES
+# Each bot has its own workflow_call trigger and the gold bot
+# uses the correct active-market-hours window.
+#
+# GOLD SESSIONS (UTC):
+#   London open:      07:00 – 12:00
+#   NY + London peak: 13:00 – 16:00  ← highest volatility
+#   NY session:       13:00 – 21:00
+#   → Run gold bot 07:00 – 21:00 UTC, Mon–Fri only
+#
+# CRYPTO:
+#   BTC trades 24/7 — keep 06:00 – 18:00 UTC window
+# ============================================================
+
+on:
+  schedule:
+    # PUBLIC REPO SCHEDULE: Unlimited free GitHub Actions minutes!
+    # BTC Bot runs 24/7 (Every 30 mins, every day)
+    - cron: '*/30 * * * *'
+    # Gold Bot runs 24/5 (Every 30 mins, Mon-Fri only, because forex/gold is closed on weekends)
+    - cron: '*/30 * * * 1-5'
+  workflow_dispatch:   # Manual trigger from the Actions tab
+
+permissions:
+  contents: write      # Required to push state files back to repo
+
+jobs:
+  # ============================================================
+  # JOB 1 — BTC Paper Trading Bot (crypto hours)
+  # Runs: 06:00–18:00 UTC, Mon–Fri
+  # ============================================================
+  run-crypto-bot:
+    name: BTC Paper Trading Bot
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '*/30 * * * *'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run BTC Trading Bot
+        env:
+          GEMINI_API_KEY:      ${{ secrets.GEMINI_API_KEY }}
+          NEWS_API_KEY:        ${{ secrets.NEWS_API_KEY }}
+          TELEGRAM_BOT_TOKEN:  ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID:    ${{ secrets.TELEGRAM_CHAT_ID }}
+          TRADING_PAIR:        BTCUSDT
+          STOP_LOSS_PCT:       "2"
+          TAKE_PROFIT_PCT:     "5"
+          MIN_CONFIDENCE:      "0.70"
+          MAX_SPEND:           "1000"
+        run: python news_trading_bot.py --paper
+
+      - name: Commit updated BTC portfolio state
+        run: |
+          git config --global user.name  'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          git add bot_state.json
+          git diff --staged --quiet || git commit -m "chore: update BTC state [skip ci]"
+          git push
+
+  # ============================================================
+  # JOB 2 — Gold Paper Trading Bot (London + NY sessions)
+  # Runs: 07:00–21:00 UTC, Mon–Fri
+  # Key news times: 13:30 UTC (US data), 18:00 UTC (FOMC)
+  # ============================================================
+  run-gold-bot:
+    name: Gold Paper Trading Bot
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '*/30 * * * 1-5'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run Gold Trading Bot
+        env:
+          GEMINI_API_KEY:        ${{ secrets.GEMINI_API_KEY }}
+          NEWS_API_KEY:          ${{ secrets.NEWS_API_KEY }}
+          TELEGRAM_BOT_TOKEN:    ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID:      ${{ secrets.TELEGRAM_CHAT_ID }}
+          GOLD_STOP_LOSS_PCT:    "1.5"
+          GOLD_TAKE_PROFIT_PCT:  "3.0"
+          GOLD_MIN_CONFIDENCE:   "0.65"
+          GOLD_MAX_SPEND:        "5000"
+          GOLD_INITIAL_BALANCE:  "100000"
+        run: python gold_trading_bot.py
+
+      - name: Commit updated Gold portfolio state
+        run: |
+          git config --global user.name  'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          git add gold_state.json
+          git diff --staged --quiet || git commit -m "chore: update Gold state [skip ci]"
+          git push

@@ -1,0 +1,6 @@
+# News Trading Bot — Python Dependencies
+# Install all: pip install -r requirements.txt
+
+requests>=2.31.0
+python-dotenv>=1.0.0
+binance-connector>=3.7.0
