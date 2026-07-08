@@ -1,12 +1,12 @@
 {
-    "balance": 94495.80675916662,
-    "position_oz": 1.216071602295943,
-    "entry_price": 4111.6,
-    "stop_loss": 4049.93,
-    "take_profit": 4234.95,
-    "total_trades": 17,
+    "balance": 99420.28871266404,
+    "position_oz": 0.0,
+    "entry_price": 0.0,
+    "stop_loss": 0.0,
+    "take_profit": 0.0,
+    "total_trades": 18,
     "winning_trades": 4,
-    "losing_trades": 13,
-    "total_pnl": -504.19324083337506,
+    "losing_trades": 14,
+    "total_pnl": -579.7112873359538,
     "_last_qty": 1.216071602295943
 }
